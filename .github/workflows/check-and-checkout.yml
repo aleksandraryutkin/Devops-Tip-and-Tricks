@@ -13,7 +13,7 @@ jobs:
       comment-body-true: ${{ steps.check-step.outputs.result }}
       pr-head-ref: ${{ steps.get-pr-info.outputs.head-ref }}
     steps:
-      - name: check-step
+      - id: check-step
         run: |
         
           COMMENT_BODY=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${{ github.event.comment.url }} | jq -r '.body')
@@ -25,7 +25,7 @@ jobs:
           else
             echo "Comment does not contain the keyword. Skipping workflow"
           fi
-      - name: get-pr-info
+      - id: get-pr-info
         run: |
           PR_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${{ github.event.issue.pull_request.url }})
           HEAD_REF=$(echo "$PR_INFO" | jq -r '.head.ref')
