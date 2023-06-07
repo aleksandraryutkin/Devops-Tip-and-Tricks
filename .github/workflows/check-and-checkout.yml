@@ -1,0 +1,42 @@
+name: Check-and-checkout
+
+on:
+  issue_comment:
+    types:
+      - created
+
+jobs:
+  checks-and-get-info:
+    if: ${{ github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+    outputs:
+      comment-body-true: ${{ steps.check-step.outputs.result }}
+      pr-head-ref: ${{ steps.get-pr-info.outputs.head-ref }}
+    steps:
+      - name: check-step
+        run: |
+        
+          COMMENT_BODY=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${{ github.event.comment.url }} | jq -r '.body')
+        
+          if [ "$COMMENT_BODY" == "deploy" ]; then
+            echo "result=true" >> "$GITHUB_OUTPUT"
+            echo "Comment contains the keyword. Starting workflow..."
+            
+          else
+            echo "Comment does not contain the keyword. Skipping workflow"
+          fi
+      - name: get-pr-info
+        run: |
+          PR_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${{ github.event.issue.pull_request.url }})
+          HEAD_REF=$(echo "$PR_INFO" | jq -r '.head.ref')
+          echo "head-ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+
+  another-job:
+    needs: checks-and-get-info
+    if: ${{ needs.checks-and-get-info.outputs.comment-body-true == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone git repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.checks-and-get-info.outputs.pr-head-ref }}
